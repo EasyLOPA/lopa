@@ -70,12 +70,24 @@ def db_conn():
     
     return conn, cur
 
-db_conn() 
+def add_scrollable(widgetFrame: Toplevel, height:int, width:int, color= "white"):
+    widgetFrame.title("Layer of Protection Analysis")
+    scrollcanvas = Canvas(widgetFrame, bg=color, height=height, width=width)
+    scrollbar = Scrollbar(widgetFrame, orient="horizontal", width=18, command=canvas.xview)
+    scrollcanvas.configure(scrollregion=(0,0,width,height), xscrollcommand=scrollbar.set)
+    scrollcanvas.grid(column=0, row=0, sticky="nsew")
+    scrollbar.grid(row=1, column=0, sticky="ew")
+    for x in range(0, 2001, 100):
+        scrollanchor = "sw" if x < 100 else ("se" if x==2000 else "s")
+        canvas.create_line(x, 700, x, 690, fill="red")
+        canvas.create_text(x, 680, text=x, anchor=scrollanchor)
+    return scrollcanvas
 
-root = tk.Tk()
+root = Tk()
 root.title("Layer of Protection Analysis")
-canvas = tk.Canvas(root, bg="#394867", height=700, width=500)
-scrollbar = tk.Scrollbar(root, orient="horizontal", width=18, command=canvas.xview)
+tkintercolor = '#394867'
+canvas = Canvas(root, bg=tkintercolor, height=700, width=500)
+scrollbar = Scrollbar(root, orient="horizontal", width=18, command=canvas.xview)
 canvas.configure(scrollregion=(0,0,700,700), xscrollcommand=scrollbar.set)
 
 root.grid_rowconfigure(0, weight=1)
@@ -94,25 +106,25 @@ for x in range(0, 2001, 100):
 def new_event():
     
     global save_event
-    top = Toplevel(bg="orange")
+    color = 'orange'
+    top = Toplevel(bg=color)
     top.title("Layer of Protection Analysis ")
-    top.geometry("900x500")
-
-    event_label = Label(top, text="CREATE EVENT", font=('serif', 14, 'bold'))
-    event_label.grid(row=0, column=1, columnspan=2)
-
+    cv = add_scrollable(widgetFrame=top, height=400, width=400, color=color)
+    newentrylabelframe = LabelFrame(cv, text="Create Event", background=color, foreground="white")
+    newentrylabelframe.grid(row=0, column=0, columnspan=2, rowspan=5, padx=20, pady=20)
+    
     # --------------Input UI----------------------------
-    event_description_label = Label(top, text="Description:")
+    event_description_label = Label(newentrylabelframe, text="Description:", background=color, foreground='white')
     event_description_label.grid(row=1, column=0, padx=10, pady=10)
 
-    event_description = Entry(top, width=30)
+    event_description = Entry(newentrylabelframe, width=30)
     event_description.grid(row=1, column=1, padx=10, pady=10)
 
     
-    event_target_freq_label = Label(top, text="Target Frequency: ")
+    event_target_freq_label = Label(newentrylabelframe, text="Target Frequency: ", background=color, foreground='white')
     event_target_freq_label.grid(row=2, column=0, padx=10, pady=10)
 
-    event_target_freq = Entry(top, width=30)
+    event_target_freq = Entry(newentrylabelframe, width=30)
     event_target_freq.grid(row=2, column=1, padx=10, pady=10)
 
     
@@ -122,39 +134,39 @@ def new_event():
                     event_description.get(),
                     event_target_freq.get()))
 
-        success = Label(top, text="Added record successfully", fg="green")
+        success = Label(newentrylabelframe, text="Added record successfully", fg="green")
         success.grid(row=4, column=1)
         conn.commit()
         event_description.delete(0, END)
         event_target_freq.delete(0, END)
     
 
-    save_event = Button(top, text="Save", width=20, command=save_event)
+    save_event = Button(newentrylabelframe, text="Save", width=20, command=save_event)
     save_event.grid(row=3, column=1)
     
 
 
 def new_cause():
     db_conn()
-    top = Toplevel(bg="blue")
-    top.geometry("500x500")
+    color ='blue'
+    top = Toplevel(bg=color)
+    cv = add_scrollable(widgetFrame=top, height=400, width=400, color=color)
+    newentrylabelframe = LabelFrame(cv, text="Create Cause", background=color, foreground="white")
+    newentrylabelframe.grid(row=0, column=0, columnspan=2, rowspan=6, padx=20, pady=20)
     top.title("Layer of Protection Analysis ")
 
-    label = Label(top, text="CREATE CAUSE", font=('serif', 14, 'bold'))
-    label.grid(row=0, column=1, columnspan=2)
-
-    cause_description_label = Label(top, text="Description:")
+    cause_description_label = Label(newentrylabelframe, text="Description:", background=color, foreground='white')
     cause_description_label.grid(row=2, column=0, padx=10, pady=10)
-    cause_description = Entry(top, width=30)
+    cause_description = Entry(newentrylabelframe, width=30)
     cause_description.grid(row=2, column=1, padx=10, pady=10)
 
-    cause_initial_frequency_label = Label(top, text="Initial Frequency:")
+    cause_initial_frequency_label = Label(newentrylabelframe, text="Initial Frequency:", background=color, foreground='white')
     cause_initial_frequency_label.grid(row=3, column=0, padx=10, pady=10)
-    cause_initial_frequency = Entry(top, width=30)
+    cause_initial_frequency = Entry(newentrylabelframe, width=30)
     cause_initial_frequency.grid(row=3, column=1, padx=10, pady=10)
 
     # --------------------------------EVENT ID Dropdown-------------------
-    event_id_label = Label(top, text="Event:")
+    event_id_label = Label(newentrylabelframe, text="Event:", background=color, foreground='white')
     event_id_label.grid(row=1, column=0, padx=10, pady=10)
     cur.execute("""
             SELECT event_id, description FROM Event;
@@ -181,7 +193,7 @@ def new_cause():
         clicked_event.set(event_name_list[0])
 
         
-    event_id_drop = OptionMenu(top, clicked_event, *event_dict.keys())
+    event_id_drop = OptionMenu(newentrylabelframe, clicked_event, *event_dict.keys())
     event_id_drop.grid(row=1, column=1, pady=10, padx=5)
 
     # ---------------Save CAUSE-------------------
@@ -193,36 +205,38 @@ def new_cause():
             event_dict[clicked_event.get()]
         ))
 
-        success = Label(top, text="Added record successfully", fg="green")
+        success = Label(newentrylabelframe, text="Added record successfully", fg="green")
         success.grid(row=6, column=1, columnspan=2, pady=10)
         conn.commit()
         success.after(5000, success.destroy)
         cause_description.delete(0, END)
         cause_initial_frequency.delete(0, END)
 
-    save_cause = Button(top, text="Save", width=20, command=save_cause)
+    save_cause = Button(newentrylabelframe, text="Save", width=20, command=save_cause)
     save_cause.grid(row=5, column=1, columnspan=2, pady=10)
 
 
 def new_cause_barrier():
     top = Toplevel()
     top.title("Layer of Protection Analysis ")
-    top.geometry("500x500")
+    cv = add_scrollable(widgetFrame=top, height=400, width=400)
+    newentrylabelframe = LabelFrame(cv, text="Create Cause Barrier")
+    newentrylabelframe.grid(row=0, column=0, columnspan=2, rowspan=6, padx=20, pady=20)
 
 
-    label = Label(top, text="CREATE CAUSE BARRIER", font=('serif', 14, 'bold'))
+    label = Label(newentrylabelframe, text="CREATE CAUSE BARRIER", font=('serif', 14, 'bold'))
     label.grid(row=0, column=1, columnspan=2)
 
 
 
-    cause_barrier_description_label = Label(top, text="Description")
+    cause_barrier_description_label = Label(newentrylabelframe, text="Description")
     cause_barrier_description_label.grid(row=2, column=0, padx=10, pady=10)
-    cause_barrier_description = Entry(top, width=30)
+    cause_barrier_description = Entry(newentrylabelframe, width=30)
     cause_barrier_description.grid(row=2, column=1, padx=10, pady=10)
 
-    cause_barrier_pfd_label = Label(top, text="PFD")
+    cause_barrier_pfd_label = Label(newentrylabelframe, text="PFD")
     cause_barrier_pfd_label.grid(row=3, column=0, padx=10, pady=10)
-    cause_barrier_pfd = Entry(top, width=30)
+    cause_barrier_pfd = Entry(newentrylabelframe, width=30)
     cause_barrier_pfd.grid(row=3, column=1, padx=10, pady=10)
 
 
@@ -250,10 +264,10 @@ def new_cause_barrier():
     else:
         clicked_cause.set(cause_name_list[0])
 
-    cause_id = Label(top, text="Cause:")
+    cause_id = Label(newentrylabelframe, text="Cause:")
     cause_id.grid(row=1, column=0, padx=10, pady=10)
         
-    cause_id_drop = OptionMenu(top, clicked_cause, *cause_dict.keys())
+    cause_id_drop = OptionMenu(newentrylabelframe, clicked_cause, *cause_dict.keys())
     cause_id_drop.grid(row=1, column=1, pady=10, padx=40)
 
 
@@ -265,7 +279,7 @@ def new_cause_barrier():
             cause_dict[clicked_cause.get()])
         )
 
-        success = Label(top, text="Added record successfully", fg="green")
+        success = Label(newentrylabelframe, text="Added record successfully", fg="green")
         success.grid(row=5, column=1, columnspan=2, pady=10)
         conn.commit()
 
@@ -275,33 +289,33 @@ def new_cause_barrier():
 
 
 
-    save_cause_barrier = Button(top, text="Save", width=20, command=save_cause_barrier)
+    save_cause_barrier = Button(newentrylabelframe, text="Save", width=20, command=save_cause_barrier)
     save_cause_barrier.grid(row=4, column=1, columnspan=2, pady=10)
 
 
 def new_consequence():
     db_conn()
-    top = Toplevel(bg="red")
+    color="red"
+    top = Toplevel(bg=color)
     top.title("Layer of Protection Analysis ")
-    top.geometry("500x500")
+    cv = add_scrollable(widgetFrame=top, height=400, width=400, color=color)
+    newentrylabelframe = LabelFrame(cv, text="Create Consequence", background=color, foreground="white")
+    newentrylabelframe.grid(row=0, column=0, columnspan=2, rowspan=6, padx=20, pady=20)
 
-    label = Label(top, text="CREATE CONSEQUENCE", font=('serif', 14, 'bold'))
-    label.grid(row=0, column=1, columnspan=2)
 
-
-    consequence_description_label = Label(top, text="Description:")
+    consequence_description_label = Label(newentrylabelframe, text="Description:", background=color, foreground='white')
     consequence_description_label.grid(row=2, column=0, padx=10, pady=10)
-    consequence_description = Entry(top, width=30)
+    consequence_description = Entry(newentrylabelframe, width=30)
     consequence_description.grid(row=2, column=1, padx=10, pady=10)
     
-    consequence_target_frequency_label = Label(top, text="Target Frequency:")
+    consequence_target_frequency_label = Label(newentrylabelframe, text="Target Frequency:", background=color, foreground='white')
     consequence_target_frequency_label.grid(row=3, column=0, padx=10, pady=10)
-    consequence_target_frequency = Entry(top, width=30)
+    consequence_target_frequency = Entry(newentrylabelframe, width=30)
     consequence_target_frequency.grid(row=3, column=1, padx=10, pady=10)
 
 
     # --------------------------------EVENT ID Dropdown-------------------
-    event_id_label = Label(top, text="Event:")
+    event_id_label = Label(newentrylabelframe, text="Event:", background=color, foreground='white')
     event_id_label.grid(row=1, column=0, padx=20, pady=20)
     cur.execute("""
             SELECT event_id, description FROM Event;
@@ -326,7 +340,7 @@ def new_consequence():
         clicked_event.set(event_name_list[0])
 
         
-    event_id_drop = OptionMenu(top, clicked_event, *event_dict.keys())
+    event_id_drop = OptionMenu(newentrylabelframe, clicked_event, *event_dict.keys())
     event_id_drop.grid(row=1, column=1, pady=10, padx=40)
 
     # ---------------Save CONSEQUENCE-------------------
@@ -339,7 +353,7 @@ def new_consequence():
         )
 
 
-        success = Label(top, text="Added record successfully", fg="green")
+        success = Label(newentrylabelframe, text="Added record successfully", fg="green")
         success.grid(row=5, column=1, columnspan=2, pady=10)
         conn.commit()
 
@@ -348,7 +362,7 @@ def new_consequence():
         consequence_target_frequency.delete(0, END)
 
 
-    save_consequence = Button(top, text="Save", width=20, command=save_consequence)
+    save_consequence = Button(newentrylabelframe, text="Save", width=20, command=save_consequence)
     save_consequence.grid(row=4, column=1, columnspan=2, pady=10)
 
 
@@ -357,21 +371,20 @@ def new_consequence_barrier():
     db_conn()
     top = Toplevel()
     top.title("Layer of Protection Analysis ")
-    top.geometry("900x500")
+    cv = add_scrollable(widgetFrame=top, height=400, width=400)
+    newentrylabelframe = LabelFrame(cv, text="Create Consequence Barrier")
+    newentrylabelframe.grid(row=0, column=0, columnspan=2, rowspan=6, padx=20, pady=20)
 
-    label = Label(top, text="CONSEQUENCE BARRIER", font=("serif", 14, "bold"))
-    label.grid(row=0, column=1, columnspan=2)
 
-
-    consequence_barrier_description_label = Label(top, text="Description:")
+    consequence_barrier_description_label = Label(newentrylabelframe, text="Description:")
     consequence_barrier_description_label.grid(row=2, column=0, padx=10, pady=10)
-    consequence_barrier_description = Entry(top, width=30)
+    consequence_barrier_description = Entry(newentrylabelframe, width=30)
     consequence_barrier_description.grid(row=2, column=1, padx=10, pady=10)
 
 
-    consequence_barrier_pfd_label = Label(top, text="PFD:")
+    consequence_barrier_pfd_label = Label(newentrylabelframe, text="PFD:")
     consequence_barrier_pfd_label.grid(row=3, column=0, padx=10, pady=10)
-    consequence_barrier_pfd = Entry(top, width=30)
+    consequence_barrier_pfd = Entry(newentrylabelframe, width=30)
     consequence_barrier_pfd.grid(row=3, column=1, padx=10, pady=10)
 
 
@@ -395,12 +408,12 @@ def new_consequence_barrier():
         clicked_consequence.set("Create Consequence First")
         consequence_id_list = ["Create Consequence First"]
     else:
-        clicked_consequence.set(consequence_id_list[0])
+        clicked_consequence.set(consequence_name_list[0])
 
-    consequence_id = Label(top, text="Consequence:")
+    consequence_id = Label(newentrylabelframe, text="Consequence:")
     consequence_id.grid(row=1, column=0, padx=10, pady=10)
         
-    consequence_id_drop = OptionMenu(top, clicked_consequence, *consequence_dict.keys())
+    consequence_id_drop = OptionMenu(newentrylabelframe, clicked_consequence, *consequence_dict.keys())
     consequence_id_drop.grid(row=1, column=1, pady=10, padx=10)
 
 
@@ -412,15 +425,15 @@ def new_consequence_barrier():
            consequence_dict[clicked_consequence.get()])
         )
 
-        success = Label(top, text="Added record successfully", fg="green")
+        success = Label(newentrylabelframe, text="Added record successfully", fg="green")
         success.grid(row=4, column=1, columnspan=2, pady=10)
         conn.commit()
         success.after(5000, success.destroy)
         consequence_barrier_description.delete(0, END)
         consequence_barrier_pfd.delete(0, END)
 
-    save_consequence_barrier = Button(top, text="Save", width=20, command=save_consequence_barrier)
-    save_consequence_barrier.grid(row=3, column=1, columnspan=2)
+    save_consequence_barrier = Button(newentrylabelframe, text="Save", width=20, command=save_consequence_barrier)
+    save_consequence_barrier.grid(row=4, column=1, columnspan=2)
 
 def delete():
     global clicked
@@ -588,17 +601,17 @@ def edit_entry():
         top = Toplevel(bg="orange")
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
-        label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"))
+        label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"), background='orange', foreground='white')
         label.grid(row=0, column=1)
 
-        event_description_label_editor = Label(top, text="Description:")
+        event_description_label_editor = Label(top, text="Description:", background='orange', foreground='white')
         event_description_label_editor.grid(row=1, column=0)
 
         event_description_editor = Entry(top, width=30)
         event_description_editor.grid(row=1, column=1, padx=20)
 
 
-        event_target_frequency_label_editor = Label(top, text="Target Frequency:")
+        event_target_frequency_label_editor = Label(top, text="Target Frequency:", background='orange', foreground='white')
         event_target_frequency_label_editor.grid(row=2, column=0, padx=20)
 
         event_target_frequency_editor = Entry(top, width=30)
@@ -618,20 +631,20 @@ def edit_entry():
         top = Toplevel(bg="blue")
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
-        label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"))
+        label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"), background='blue', foreground='white')
         label.grid(row=0, column=1)
 
-        cause_description_label_editor = Label(top, text="Description:")
+        cause_description_label_editor = Label(top, text="Description:", background='blue', foreground='white')
         cause_description_label_editor.grid(row=1, column=0, padx=10, pady=10)
         cause_description_editor = Entry(top, width=30)
         cause_description_editor.grid(row=1, column=1, padx=10, pady=10)
 
-        cause_initial_frequency_label_editor = Label(top, text="Initial Frequency:")
+        cause_initial_frequency_label_editor = Label(top, text="Initial Frequency:", background='blue', foreground='white')
         cause_initial_frequency_label_editor.grid(row=2, column=0, padx=10, pady=10)
         cause_initial_frequency_editor = Entry(top, width=30)
         cause_initial_frequency_editor.grid(row=2, column=1, padx=10, pady=10)
 
-        cause_event_id_label_editor = Label(top, text="Event:")
+        cause_event_id_label_editor = Label(top, text="Event:", background='blue', foreground='white')
         cause_event_id_label_editor.grid(row=1, column=2, padx=10, pady=10)
 
     
@@ -731,20 +744,20 @@ def edit_entry():
         top = Toplevel(bg="red")
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
-        label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"))
+        label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"), background='red', foreground='white')
         label.grid(row=0, column=1)
 
-        consequence_description_label_editor = Label(top, text="Description:")
+        consequence_description_label_editor = Label(top, text="Description:", background='red', foreground='white')
         consequence_description_label_editor.grid(row=1, column=0, padx=10, pady=10)
         consequence_description_editor = Entry(top, width=30)
         consequence_description_editor.grid(row=1, column=1, padx=10, pady=10)
 
-        consequence_target_frequency_label_editor = Label(top, text="Target Frequency:")
+        consequence_target_frequency_label_editor = Label(top, text="Target Frequency:", background='red', foreground='white')
         consequence_target_frequency_label_editor.grid(row=2, column=0, padx=10, pady=10)
         consequence_target_frequency_editor = Entry(top, width=30)
         consequence_target_frequency_editor.grid(row=2, column=1, padx=10, pady=10)
 
-        consequence_event_id_label_editor = Label(top, text="Event")
+        consequence_event_id_label_editor = Label(top, text="Event", background='red', foreground='white')
         consequence_event_id_label_editor.grid(row=1, column=2, padx=10, pady=10)
 
     
@@ -918,7 +931,7 @@ def load_initial_entry():
 
 global editlabelframe
 
-editlabelframe = LabelFrame(canvas, text="Edit/Delete existing entries", background='#394867', foreground="white")
+editlabelframe = LabelFrame(canvas, text="Edit/Delete existing entries", background=tkintercolor, foreground="white")
 editlabelframe.grid(row=1, column=1, columnspan=3, rowspan=4, padx=20, pady=20)
 
 clicked_entry = StringVar(editlabelframe)
@@ -938,7 +951,7 @@ edit.grid(row=3, column=2, padx=80, pady=20)
 delete = Button(editlabelframe, text="Delete Entry", bg="red", command=delete, height = 2, width = 23)
 delete.grid(row=4, column=2, padx=80, pady=20)
 
-querylabelframe = LabelFrame(canvas, text="View previous entries", background='#394867', foreground="white")
+querylabelframe = LabelFrame(canvas, text="View previous entries", background=tkintercolor, foreground="white")
 querylabelframe.grid(row=5, column=1, columnspan=3, padx=20, pady=20)
 query_list = ["Event", "Cause", "Cause_Barrier", "Consequence", "Consequence_Barrier"]
 clicked_query = StringVar(querylabelframe)
@@ -951,7 +964,7 @@ query = Button(querylabelframe, text="Query", fg="blue", command=query, height =
 query.grid(row=5, column=3, padx=80, pady=20)
 
 
-createlabelframe = LabelFrame(canvas, text="Create new Entries", background='#394867', foreground="white")
+createlabelframe = LabelFrame(canvas, text="Create new Entries", background=tkintercolor, foreground="white")
 createlabelframe.grid(row=0, column=0, rowspan=6, padx=20)
 # Buttons for inputing data
 event = Button(createlabelframe, text="Create Event", background="orange", foreground="white", command=new_event, height = 2, width = 23)
@@ -972,7 +985,7 @@ consequence_barrier.grid(row=6, column=0, padx=(20,60), pady=20)
 # Open Bowtie Diagram  
 
 
-weblabelframe = LabelFrame(canvas, text="View all entries on the web", background='#394867', foreground="white")
+weblabelframe = LabelFrame(canvas, text="View all entries on the web", background=tkintercolor, foreground="white")
 weblabelframe.grid(row=7, column=0, padx=20, pady=20)
 
 new = 1
