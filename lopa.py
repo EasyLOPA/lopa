@@ -1,3 +1,4 @@
+import tkinter as tk
 from tkinter import *
 from datetime import *
 from tkinter.ttk import Style, Treeview
@@ -71,13 +72,24 @@ def db_conn():
 
 db_conn() 
 
-root = Tk()
+root = tk.Tk()
 root.title("Layer of Protection Analysis")
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-root.geometry("1200x700")
-root.config(background='#394867')
+canvas = tk.Canvas(root, bg="#394867", height=700, width=500)
+scrollbar = tk.Scrollbar(root, orient="horizontal", width=18, command=canvas.xview)
+canvas.configure(scrollregion=(0,0,700,700), xscrollcommand=scrollbar.set)
 
+root.grid_rowconfigure(0, weight=1)
+root.grid_columnconfigure(0, weight=1)
+
+canvas.grid(column=0, row=0, sticky="nsew")
+scrollbar.grid(row=1, column=0, sticky="ew")
+
+# this adds tick-marks every 100 pixels so that you can
+# see the canvas scroll
+for x in range(0, 2001, 100):
+    anchor = "sw" if x < 100 else ("se" if x==2000 else "s")
+    canvas.create_line(x, 700, x, 690, fill="red")
+    canvas.create_text(x, 680, text=x, anchor=anchor)
 
 def new_event():
     
@@ -142,7 +154,7 @@ def new_cause():
     cause_initial_frequency.grid(row=3, column=1, padx=10, pady=10)
 
     # --------------------------------EVENT ID Dropdown-------------------
-    event_id_label = Label(top, text="Event ID:")
+    event_id_label = Label(top, text="Event:")
     event_id_label.grid(row=1, column=0, padx=10, pady=10)
     cur.execute("""
             SELECT event_id, description FROM Event;
@@ -238,7 +250,7 @@ def new_cause_barrier():
     else:
         clicked_cause.set(cause_name_list[0])
 
-    cause_id = Label(top, text="Cause ID:")
+    cause_id = Label(top, text="Cause:")
     cause_id.grid(row=1, column=0, padx=10, pady=10)
         
     cause_id_drop = OptionMenu(top, clicked_cause, *cause_dict.keys())
@@ -271,48 +283,51 @@ def new_consequence():
     db_conn()
     top = Toplevel(bg="red")
     top.title("Layer of Protection Analysis ")
-    top.geometry("900x500")
+    top.geometry("500x500")
 
     label = Label(top, text="CREATE CONSEQUENCE", font=('serif', 14, 'bold'))
-    label.grid(row=0, column=2, columnspan=2)
+    label.grid(row=0, column=1, columnspan=2)
 
 
     consequence_description_label = Label(top, text="Description:")
-    consequence_description_label.grid(row=1, column=0, padx=10, pady=10)
+    consequence_description_label.grid(row=2, column=0, padx=10, pady=10)
     consequence_description = Entry(top, width=30)
-    consequence_description.grid(row=1, column=1, padx=10, pady=10)
+    consequence_description.grid(row=2, column=1, padx=10, pady=10)
     
     consequence_target_frequency_label = Label(top, text="Target Frequency:")
-    consequence_target_frequency_label.grid(row=2, column=0, padx=10, pady=10)
+    consequence_target_frequency_label.grid(row=3, column=0, padx=10, pady=10)
     consequence_target_frequency = Entry(top, width=30)
-    consequence_target_frequency.grid(row=2, column=1, padx=10, pady=10)
+    consequence_target_frequency.grid(row=3, column=1, padx=10, pady=10)
 
 
     # --------------------------------EVENT ID Dropdown-------------------
-    event_id_label = Label(top, text="Event ID:")
-    event_id_label.grid(row=1, column=3, padx=20, pady=20)
+    event_id_label = Label(top, text="Event:")
+    event_id_label.grid(row=1, column=0, padx=20, pady=20)
     cur.execute("""
             SELECT event_id, description FROM Event;
                 """)
 
     event_id_data = cur.fetchall()
     event_id_list = list()
+    event_name_list = list()
 
     for i in event_id_data:
         data = list(i)
         event_id_list.append(data[0])
+        event_name_list.append(data[1])
 
+    event_dict = dict(zip(event_name_list, event_id_list))
     clicked_event = StringVar()
     if len(event_id_list) < 1:
         clicked_event.set("Create Event First")
         event_id_list = ["Create Event First"]
         
     else:
-        clicked_event.set(event_id_list[0])
+        clicked_event.set(event_name_list[0])
 
         
-    event_id_drop = OptionMenu(top, clicked_event, *event_id_list)
-    event_id_drop.grid(row=1, column=4, pady=10, padx=40)
+    event_id_drop = OptionMenu(top, clicked_event, *event_dict.keys())
+    event_id_drop.grid(row=1, column=1, pady=10, padx=40)
 
     # ---------------Save CONSEQUENCE-------------------
     def save_consequence():
@@ -320,21 +335,21 @@ def new_consequence():
         cur.execute("""INSERT INTO Consequence VALUES (null,%s, %s, %s)""",(
             consequence_description.get(),
             consequence_target_frequency.get(),
-            clicked_event.get())
+            event_dict[clicked_event.get()])
         )
 
 
         success = Label(top, text="Added record successfully", fg="green")
-        success.grid(row=5, column=2, columnspan=2)
+        success.grid(row=5, column=1, columnspan=2, pady=10)
         conn.commit()
 
-
+        success.after(5000, success.destroy)
         consequence_description.delete(0, END)
         consequence_target_frequency.delete(0, END)
 
 
     save_consequence = Button(top, text="Save", width=20, command=save_consequence)
-    save_consequence.grid(row=4, column=2, columnspan=2)
+    save_consequence.grid(row=4, column=1, columnspan=2, pady=10)
 
 
 
@@ -345,19 +360,19 @@ def new_consequence_barrier():
     top.geometry("900x500")
 
     label = Label(top, text="CONSEQUENCE BARRIER", font=("serif", 14, "bold"))
-    label.grid(row=0, column=2, columnspan=2)
+    label.grid(row=0, column=1, columnspan=2)
 
 
     consequence_barrier_description_label = Label(top, text="Description:")
-    consequence_barrier_description_label.grid(row=1, column=0, padx=10, pady=10)
+    consequence_barrier_description_label.grid(row=2, column=0, padx=10, pady=10)
     consequence_barrier_description = Entry(top, width=30)
-    consequence_barrier_description.grid(row=1, column=1, padx=10, pady=10)
+    consequence_barrier_description.grid(row=2, column=1, padx=10, pady=10)
 
 
     consequence_barrier_pfd_label = Label(top, text="PFD:")
-    consequence_barrier_pfd_label.grid(row=2, column=0, padx=10, pady=10)
+    consequence_barrier_pfd_label.grid(row=3, column=0, padx=10, pady=10)
     consequence_barrier_pfd = Entry(top, width=30)
-    consequence_barrier_pfd.grid(row=2, column=1, padx=10, pady=10)
+    consequence_barrier_pfd.grid(row=3, column=1, padx=10, pady=10)
 
 
     # ------------- CONSEQUENCE ID Dropdown---------------------------
@@ -367,11 +382,14 @@ def new_consequence_barrier():
 
     consequence_id_data = cur.fetchall()
     consequence_id_list = list()
+    consequence_name_list = list()
 
     for i in consequence_id_data:
         data = list(i)
         consequence_id_list.append(data[0])
+        consequence_name_list.append(data[1])
 
+    consequence_dict = dict(zip(consequence_name_list, consequence_id_list))
     clicked_consequence = StringVar()
     if len(consequence_id_list) < 1:
         clicked_consequence.set("Create Consequence First")
@@ -379,11 +397,11 @@ def new_consequence_barrier():
     else:
         clicked_consequence.set(consequence_id_list[0])
 
-    consequence_id = Label(top, text="Consequence ID:")
-    consequence_id.grid(row=1, column=2, padx=10, pady=10)
+    consequence_id = Label(top, text="Consequence:")
+    consequence_id.grid(row=1, column=0, padx=10, pady=10)
         
-    consequence_id_drop = OptionMenu(top, clicked_consequence, *consequence_id_list)
-    consequence_id_drop.grid(row=1, column=3, pady=10, padx=40)
+    consequence_id_drop = OptionMenu(top, clicked_consequence, *consequence_dict.keys())
+    consequence_id_drop.grid(row=1, column=1, pady=10, padx=10)
 
 
     def save_consequence_barrier():
@@ -391,13 +409,13 @@ def new_consequence_barrier():
         cur.execute("""INSERT INTO Consequence_Barrier VALUES (null, %s, %s, %s)""",(
            consequence_barrier_description.get(),
            consequence_barrier_pfd.get(),
-           clicked_consequence.get())
+           consequence_dict[clicked_consequence.get()])
         )
 
         success = Label(top, text="Added record successfully", fg="green")
-        success.grid(row=4, column=1, columnspan=2)
+        success.grid(row=4, column=1, columnspan=2, pady=10)
         conn.commit()
-
+        success.after(5000, success.destroy)
         consequence_barrier_description.delete(0, END)
         consequence_barrier_pfd.delete(0, END)
 
@@ -412,12 +430,12 @@ def delete():
     print(gotten_id)
 
 
-    cur.execute("DELETE FROM "+clicked.get()+ " WHERE " + gotten_id + " = " + entry.get())
+    cur.execute("DELETE FROM "+clicked.get()+ " WHERE " + gotten_id + " = " + str(entry_dict[clicked_entry.get()]))
 
     conn.commit()
 
 
-    delete_success = Label(root, text=clicked.get() + " Item  with ID " + entry.get() + " sucessfully deleted", fg="green")
+    delete_success = Label(canvas, text=clicked.get() + " Item  with ID " + str(entry_dict[clicked_entry.get()]) + " sucessfully deleted", fg="green")
     delete_success.grid(row=4, column=2)
 
 def query():
@@ -428,8 +446,12 @@ def query():
     tree = Treeview(top, column=("#1", "#2", "#3"), show='headings')
     tree.heading("#1", text="s/n")
     tree.heading("#2", text="Description")
-    tree.heading("#3", text="Initial Frequency")
-
+    if clicked_query.get() == 'Event' or clicked_query.get() == 'Consequence':
+        tree.heading("#3", text="Target Frequency")
+    elif clicked_query.get() == 'Cause':
+        tree.heading("#3", text="Initial Frequency")
+    else:
+        tree.heading("#3", text="PFD")
     tree.grid(row=1)
 
     label = Label(top, text="Data from " + clicked_query.get() + " Table", font=("serif", 14, "bold"))
@@ -465,7 +487,7 @@ def update():
               WHERE event_id = %s """, (
             event_description_editor.get(),
             event_target_frequency_editor.get(),
-            entry.get()
+            str(entry_dict[clicked_entry.get()])
             ))
         conn.commit() 
 
@@ -479,7 +501,7 @@ def update():
         cause_description_editor.get(),
         cause_initial_frequency_editor.get(),
         clicked_event_editor1.get(),
-        entry.get()
+        str(entry_dict[clicked_entry.get()])
         ))
 
         conn.commit()
@@ -494,7 +516,7 @@ def update():
         cause_barrier_description_editor.get(),
         cause_barrier_pfd_editor.get(),
         clicked_cause_editor.get(),
-        entry.get()
+        str(entry_dict[clicked_entry.get()])
         ))
 
         conn.commit()
@@ -509,7 +531,7 @@ def update():
         consequence_description_editor.get(),
         consequence_target_frequency_editor.get(),
         clicked_event_editor2.get(),
-        entry.get()
+        str(entry_dict[clicked_entry.get()])
         ))
 
         conn.commit()
@@ -524,14 +546,14 @@ def update():
         consequence_barrier_description_editor.get(),
         consequence_barrier_pfd_editor.get(),
         clicked_consequence_editor.get(),
-        entry.get()
+        str(entry_dict[clicked_entry.get()])
         ))
 
         conn.commit()
     top.destroy()
 
 
-def edit():
+def edit_entry():
     global editor
     global top
 
@@ -557,6 +579,9 @@ def edit():
 
     db_conn()
 
+    print(entry_dict)
+    print(clicked_entry.get())
+    print(clicked_entry.get()+": "+str(entry_dict[clicked_entry.get()]))
 
 
     if clicked.get() == "Event":
@@ -580,7 +605,7 @@ def edit():
         event_target_frequency_editor.grid(row=2, column=1, padx=20)
 
 
-        cur.execute("SELECT description, target_frequency FROM Event WHERE event_id = " + entry.get())
+        cur.execute("SELECT description, target_frequency FROM Event WHERE event_id = " + str(entry_dict[clicked_entry.get()]))
         records = cur.fetchall()
 
         for record in records:
@@ -606,7 +631,7 @@ def edit():
         cause_initial_frequency_editor = Entry(top, width=30)
         cause_initial_frequency_editor.grid(row=2, column=1, padx=10, pady=10)
 
-        cause_event_id_label_editor = Label(top, text="Event ID:")
+        cause_event_id_label_editor = Label(top, text="Event:")
         cause_event_id_label_editor.grid(row=1, column=2, padx=10, pady=10)
 
     
@@ -629,7 +654,7 @@ def edit():
             event_id_list_editor1 = ["Create Event First"]
             
         else:
-            cur.execute("SELECT event_id FROM Cause WHERE cause_id = " + entry.get())
+            cur.execute("SELECT event_id FROM Cause WHERE cause_id = " + str(entry_dict[clicked_entry.get()]))
             event1 = cur.fetchone()
             clicked_event_editor1.set(event1[0])
 
@@ -638,7 +663,7 @@ def edit():
         event_id_drop_editor1.grid(row=1, column=3, pady=10, padx=40)
 
 
-        cur.execute("SELECT description, initial_frequency FROM Cause WHERE cause_id = " + entry.get())
+        cur.execute("SELECT description, initial_frequency FROM Cause WHERE cause_id = " + str(entry_dict[clicked_entry.get()]))
         records = cur.fetchall()
         for record in records:
             cause_description_editor.insert(0, record[0])
@@ -683,18 +708,18 @@ def edit():
             cause_id_list_editor = ["Create Cause First"]
             
         else:
-            cur.execute("SELECT cause_id FROM Cause_Barrier WHERE cause_barrier_id = " + entry.get())
+            cur.execute("SELECT cause_id FROM Cause_Barrier WHERE cause_barrier_id = " + str(entry_dict[clicked_entry.get()]))
             cause = cur.fetchone()
  
             clicked_cause_editor.set(cause[0])
 
-        cause_id_editor = Label(top, text="Cause ID:")
+        cause_id_editor = Label(top, text="Cause")
         cause_id_editor.grid(row=1, column=2, padx=10, pady=10)
             
         cause_id_drop_editor = OptionMenu(top, clicked_cause_editor, *cause_id_list_editor)
         cause_id_drop_editor.grid(row=1, column=3, pady=10, padx=40)
 
-        cur.execute("""SELECT description, pfd FROM Cause_Barrier WHERE cause_barrier_id = """ + entry.get())
+        cur.execute("""SELECT description, pfd FROM Cause_Barrier WHERE cause_barrier_id = """ + str(entry_dict[clicked_entry.get()]))
         records = cur.fetchall()
 
         for record in records:
@@ -719,7 +744,7 @@ def edit():
         consequence_target_frequency_editor = Entry(top, width=30)
         consequence_target_frequency_editor.grid(row=2, column=1, padx=10, pady=10)
 
-        consequence_event_id_label_editor = Label(top, text="Event ID:")
+        consequence_event_id_label_editor = Label(top, text="Event")
         consequence_event_id_label_editor.grid(row=1, column=2, padx=10, pady=10)
 
     
@@ -742,7 +767,7 @@ def edit():
             event_id_list_editor2 = ["Create Event First"]
             
         else:
-            cur.execute("SELECT event_id FROM Consequence WHERE consequence_id = " + entry.get())
+            cur.execute("SELECT event_id FROM Consequence WHERE consequence_id = " + str(entry_dict[clicked_entry.get()]))
             event2 = cur.fetchone()
             clicked_event_editor2.set(event2[0])
 
@@ -751,7 +776,7 @@ def edit():
         event_id_drop_editor2.grid(row=1, column=3, pady=10, padx=40)
 
 
-        cur.execute("SELECT description, target_frequency FROM Consequence WHERE consequence_id = " + entry.get())
+        cur.execute("SELECT description, target_frequency FROM Consequence WHERE consequence_id = " + str(entry_dict[clicked_entry.get()]))
         records = cur.fetchall()
         for record in records:
             consequence_description_editor.insert(0, record[0])
@@ -795,18 +820,18 @@ def edit():
             consequence_id_list_editor = ["Create Consequence First"]
             
         else:
-            cur.execute("""SELECT consequence_id FROM Consequence_Barrier WHERE consequence_barrier_id = """ + entry.get())
+            cur.execute("""SELECT consequence_id FROM Consequence_Barrier WHERE consequence_barrier_id = """ + str(entry_dict[clicked_entry.get()]))
             consequence = cur.fetchone()
  
             clicked_consequence_editor.set(consequence[0])
 
-        consequence_id_editor = Label(top, text="Consequence ID:")
+        consequence_id_editor = Label(top, text="Consequence")
         consequence_id_editor.grid(row=1, column=2, padx=10, pady=10)
             
         consequence_id_drop_editor = OptionMenu(top, clicked_consequence_editor, *consequence_id_list_editor)
         consequence_id_drop_editor.grid(row=1, column=3, pady=10, padx=40)
 
-        cur.execute("""SELECT description, pfd FROM Consequence_Barrier WHERE consequence_barrier_id = """ + entry.get())
+        cur.execute("""SELECT description, pfd FROM Consequence_Barrier WHERE consequence_barrier_id = """ + str(entry_dict[clicked_entry.get()]))
         records = cur.fetchall()
 
         for record in records:
@@ -821,55 +846,134 @@ def edit():
     conn.commit()
 
 
+def view_dropdown(event):
+    db_conn()
+    global entry_dict
+    cur.execute("""
+            SELECT """+clicked.get().lower() +"""_id, description FROM """+clicked.get())
 
+    entry_id_data = cur.fetchall()
+    # print(entry_id_data)
+
+    entry_id_list = list()
+    entry_name_list = list()
+    clicked_entry.set("")
+    entry_select_drop['menu'].delete(0, 'end')
+    for i in entry_id_data:
+        data = list(i)
+        entry_id_list.append(data[0])
+        entry_name_list.append(data[1])
+        entry_select_drop['menu'].add_command(label=data[1], command=tk._setit(clicked_entry, data[1],))
+    clicked_entry.set(entry_name_list[0])
+    entry_dict = dict(zip(entry_name_list, entry_id_list))
+    print(entry_dict)
+    # dict.fromkeys(event_id_list, "In stock")
+    
+    if len(entry_id_list) < 1:
+        clicked_entry.set("Create Event First")
+        event_id_list = ["Create Event First"]
+
+        
+    else:
+        clicked_entry.set(entry_name_list[0])
+    
+    # entry_select_drop = OptionMenu(editlabelframe, clicked_event, *entry_dict.keys())
+    # entry_select_drop.grid(row=2, column=2)
+
+
+def load_initial_entry():
+    db_conn()
+    global entry_select_drop
+    global entry_dict
+    global drop
+    global clicked
+    global clicked_entry
+
+    cur.execute("""
+            SELECT event_id, description FROM """+ clicked.get())
+
+    entry_id_data = cur.fetchall()
+    entry_id_list = list()
+    entry_name_list = list()
+
+    clicked_entry = StringVar(editlabelframe)
+
+    for i in entry_id_data:
+        data = list(i)
+        entry_id_list.append(data[0])
+        entry_name_list.append(data[1])
+    entry_dict = dict(zip(entry_name_list, entry_id_list))
+    
+    # dict.fromkeys(event_id_list, "In stock")
+    if len(entry_id_list) < 1:
+        clicked_entry.set("Create Event First")
+        entry_name_list = ["Create Event First"]
+        
+    else:
+        clicked_entry.set(entry_name_list[0])
+    entry_select_drop = OptionMenu(editlabelframe, clicked_entry, *entry_dict.keys())
+    entry_select_drop.grid(row=2, column=2)
 # Query, Delete and Edit
 
+
+global editlabelframe
+
+editlabelframe = LabelFrame(canvas, text="Edit/Delete existing entries", background='#394867', foreground="white")
+editlabelframe.grid(row=1, column=1, columnspan=3, rowspan=4, padx=20, pady=20)
+
+clicked_entry = StringVar(editlabelframe)
 lopa_list = ["Event", "Cause", "Cause_Barrier", "Consequence", "Consequence_Barrier"]
-clicked = StringVar(root)
+
+clicked = StringVar(editlabelframe)
 clicked.set(lopa_list[0])
-drop = OptionMenu(root, clicked, *lopa_list)
-drop.grid(row=1, column=1, padx=20, pady=20)
+drop = OptionMenu(editlabelframe, clicked, *lopa_list, command=view_dropdown)
+drop.grid(row=2, column=1, padx=20, pady=20)
 
 
-entry = Entry(root, width=30)
-entry.grid(row=1, column=2)
+load_initial_entry()
 
-edit = Button(root, text="Edit Entry", command=edit, height = 2, width = 23)
-edit.grid(row=2, column=2, padx=80, pady=20)
+edit = Button(editlabelframe, text="Edit Entry", command=edit_entry, height = 2, width = 23)
+edit.grid(row=3, column=2, padx=80, pady=20)
 
-delete = Button(root, text="Delete Entry", bg="red", command=delete, height = 2, width = 23)
-delete.grid(row=3, column=2, padx=80, pady=20)
+delete = Button(editlabelframe, text="Delete Entry", bg="red", command=delete, height = 2, width = 23)
+delete.grid(row=4, column=2, padx=80, pady=20)
 
-
+querylabelframe = LabelFrame(canvas, text="View previous entries", background='#394867', foreground="white")
+querylabelframe.grid(row=5, column=1, columnspan=3, padx=20, pady=20)
 query_list = ["Event", "Cause", "Cause_Barrier", "Consequence", "Consequence_Barrier"]
-clicked_query = StringVar(root)
+clicked_query = StringVar(querylabelframe)
 clicked_query.set(query_list[0])
 
-query_drop = OptionMenu(root, clicked_query, *query_list)
-query_drop.grid(row=5, column=1, padx=20, pady=20)
+query_drop = OptionMenu(querylabelframe, clicked_query, *query_list)
+query_drop.grid(row=5, column=2, padx=20, pady=20)
 
-query = Button(root, text="Query", fg="blue", command=query, height = 2, width = 23)
-query.grid(row=5, column=2, padx=80, pady=20)
+query = Button(querylabelframe, text="Query", fg="blue", command=query, height = 2, width = 23)
+query.grid(row=5, column=3, padx=80, pady=20)
 
 
+createlabelframe = LabelFrame(canvas, text="Create new Entries", background='#394867', foreground="white")
+createlabelframe.grid(row=0, column=0, rowspan=6, padx=20)
 # Buttons for inputing data
-event = Button(root, text="Create Event", bg="orange", command=new_event, height = 2, width = 23)
-event.grid(row=1, column=0, padx=(20,60), pady=20)
+event = Button(createlabelframe, text="Create Event", background="orange", foreground="white", command=new_event, height = 2, width = 23)
+event.grid(row=2, column=0, padx=(20,60), pady=20)
 
-cause = Button(root, text="Create Cause", bg="blue",fg="white", command=new_cause, height = 2, width = 23)
-cause.grid(row=2, column=0, padx=(20,60), pady=20)
+cause = Button(createlabelframe, text="Create Cause", background="blue",foreground="white", command=new_cause, height = 2, width = 23)
+cause.grid(row=3, column=0, padx=(20,60), pady=20)
 
-consequence = Button(root, text="Create Consequence", bg="red", fg="white", command=new_consequence, height = 2, width = 23)
-consequence.grid(row=3, column=0, padx=(20,60), pady=20)
+consequence = Button(createlabelframe, text="Create Consequence", bg="red", fg="white", command=new_consequence, height = 2, width = 23)
+consequence.grid(row=4, column=0, padx=(20,60), pady=20)
 
-cause_barrier = Button(root, text="Create Cause Barrier", command=new_cause_barrier, height = 2, width = 23)
-cause_barrier.grid(row=4, column=0, padx=(20,60), pady=20)
+cause_barrier = Button(createlabelframe, text="Create Cause Barrier", command=new_cause_barrier, height = 2, width = 23)
+cause_barrier.grid(row=5, column=0, padx=(20,60), pady=20)
 
-consequence_barrier = Button(root, text="Create Consequence Barrier", command=new_consequence_barrier, height = 2, width = 23)
-consequence_barrier.grid(row=5, column=0, padx=(20,60), pady=20)
+consequence_barrier = Button(createlabelframe, text="Create Consequence Barrier", command=new_consequence_barrier, height = 2, width = 23)
+consequence_barrier.grid(row=6, column=0, padx=(20,60), pady=20)
 
 # Open Bowtie Diagram  
 
+
+weblabelframe = LabelFrame(canvas, text="View all entries on the web", background='#394867', foreground="white")
+weblabelframe.grid(row=7, column=0, padx=20, pady=20)
 
 new = 1
 url = "https://lopa-web-bow-tie.azurewebsites.net/"
@@ -877,7 +981,7 @@ url = "https://lopa-web-bow-tie.azurewebsites.net/"
 def openweb():
     webbrowser.open(url,new=new)
 
-bowtie = Button(root, text = "Draw Bowtie Diagram",command=openweb, height = 2, width = 23, bg="green")
-bowtie.grid(row=6, column=0, padx=(20,60), pady=20)
+bowtie = Button(weblabelframe, text = "Draw Bowtie Diagram",command=openweb, height = 2, width = 23, bg="green")
+bowtie.grid(row=7, column=0, padx=(20,60), pady=20)
 
 mainloop()
