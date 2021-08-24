@@ -86,6 +86,7 @@ def add_scrollable(widgetFrame: Toplevel, height:int, width:int, color= "white")
 root = Tk()
 root.title("Layer of Protection Analysis")
 tkintercolor = '#394867'
+global presentTop
 canvas = Canvas(root, bg=tkintercolor, height=700, width=500)
 scrollbar = Scrollbar(root, orient="horizontal", width=18, command=canvas.xview)
 canvas.configure(scrollregion=(0,0,700,700), xscrollcommand=scrollbar.set)
@@ -193,7 +194,7 @@ def new_cause():
         clicked_event.set(event_name_list[0])
 
         
-    event_id_drop = OptionMenu(newentrylabelframe, clicked_event, *event_dict.keys())
+    event_id_drop = OptionMenu(newentrylabelframe, clicked_event, *event_name_list)
     event_id_drop.grid(row=1, column=1, pady=10, padx=5)
 
     # ---------------Save CAUSE-------------------
@@ -267,7 +268,7 @@ def new_cause_barrier():
     cause_id = Label(newentrylabelframe, text="Cause:")
     cause_id.grid(row=1, column=0, padx=10, pady=10)
         
-    cause_id_drop = OptionMenu(newentrylabelframe, clicked_cause, *cause_dict.keys())
+    cause_id_drop = OptionMenu(newentrylabelframe, clicked_cause, *cause_name_list)
     cause_id_drop.grid(row=1, column=1, pady=10, padx=40)
 
 
@@ -340,7 +341,7 @@ def new_consequence():
         clicked_event.set(event_name_list[0])
 
         
-    event_id_drop = OptionMenu(newentrylabelframe, clicked_event, *event_dict.keys())
+    event_id_drop = OptionMenu(newentrylabelframe, clicked_event, *event_name_list)
     event_id_drop.grid(row=1, column=1, pady=10, padx=40)
 
     # ---------------Save CONSEQUENCE-------------------
@@ -413,7 +414,7 @@ def new_consequence_barrier():
     consequence_id = Label(newentrylabelframe, text="Consequence:")
     consequence_id.grid(row=1, column=0, padx=10, pady=10)
         
-    consequence_id_drop = OptionMenu(newentrylabelframe, clicked_consequence, *consequence_dict.keys())
+    consequence_id_drop = OptionMenu(newentrylabelframe, clicked_consequence, *consequence_name_list)
     consequence_id_drop.grid(row=1, column=1, pady=10, padx=10)
 
 
@@ -492,6 +493,7 @@ def query():
 
 def update():
     db_conn()
+    successlabel = Label(presentTop, text="Data updated successfully", font=('serif', 14, 'bold'), foreground='green')
     if clicked.get() == "Event":
 
         cur.execute(""" UPDATE Event
@@ -513,11 +515,12 @@ def update():
               WHERE cause_id = %s """, (
         cause_description_editor.get(),
         cause_initial_frequency_editor.get(),
-        clicked_event_editor1.get(),
+        str(event_dict1[clicked_event_editor1.get()]),
         str(entry_dict[clicked_entry.get()])
         ))
-
+        successlabel.grid(row=4, column=1)
         conn.commit()
+        successlabel.after(5000, successlabel.master)
 
     elif clicked.get() == "Cause_Barrier":
 
@@ -528,12 +531,12 @@ def update():
               WHERE cause_barrier_id = %s """, (
         cause_barrier_description_editor.get(),
         cause_barrier_pfd_editor.get(),
-        clicked_cause_editor.get(),
+        str(cause_dict[clicked_cause_editor.get()]),
         str(entry_dict[clicked_entry.get()])
         ))
-
+        successlabel.grid(row=4, column=1)
         conn.commit()
-
+        successlabel.after(5000, successlabel.master)
     elif clicked.get() == "Consequence":
 
         cur.execute(""" UPDATE Consequence
@@ -543,7 +546,7 @@ def update():
               WHERE consequence_id = %s """, (
         consequence_description_editor.get(),
         consequence_target_frequency_editor.get(),
-        clicked_event_editor2.get(),
+        str(event_dict2[clicked_event_editor2.get()]),
         str(entry_dict[clicked_entry.get()])
         ))
 
@@ -558,17 +561,17 @@ def update():
               WHERE consequence_barrier_id = %s """, (
         consequence_barrier_description_editor.get(),
         consequence_barrier_pfd_editor.get(),
-        clicked_consequence_editor.get(),
+        str(consequence_dict[clicked_consequence_editor.get()]),
         str(entry_dict[clicked_entry.get()])
         ))
 
         conn.commit()
-    top.destroy()
 
 
 def edit_entry():
     global editor
-    global top
+    global topx
+    global presentTop
 
     global event_target_frequency_editor
     global event_description_editor
@@ -577,18 +580,22 @@ def edit_entry():
     global cause_description_editor
     global cause_initial_frequency_editor
     global clicked_event_editor1
+    global event_dict1
 
     global cause_barrier_description_editor
     global cause_barrier_pfd_editor
     global clicked_cause_editor
+    global cause_dict
 
     global consequence_description_editor
     global consequence_target_frequency_editor
     global clicked_event_editor2
+    global event_dict2
 
     global consequence_barrier_description_editor
     global consequence_barrier_pfd_editor
     global clicked_consequence_editor
+    global consequence_dict
 
     db_conn()
 
@@ -599,6 +606,8 @@ def edit_entry():
 
     if clicked.get() == "Event":
         top = Toplevel(bg="orange")
+        presentTop = top
+        print(presentTop)
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
         label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"), background='orange', foreground='white')
@@ -629,6 +638,8 @@ def edit_entry():
     elif clicked.get() == "Cause":
 
         top = Toplevel(bg="blue")
+        presentTop = top
+        print(presentTop)
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
         label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"), background='blue', foreground='white')
@@ -656,23 +667,26 @@ def edit_entry():
 
         event_id_data_editor1 = cur.fetchall()
         event_id_list_editor1 = list()
+        event_name_list_editor1 = list()
 
         for i in event_id_data_editor1:
             data1 = list(i)
             event_id_list_editor1.append(data1[0])
+            event_name_list_editor1.append(data1[1])
 
         clicked_event_editor1 = StringVar()
+        event_dict1 = dict(zip(event_name_list_editor1, event_id_list_editor1))
         if len(event_id_list_editor1) < 1:
             clicked_event_editor1.set("Create Event First")
-            event_id_list_editor1 = ["Create Event First"]
+            event_name_list_editor1 = ["Create Event First"]
             
         else:
-            cur.execute("SELECT event_id FROM Cause WHERE cause_id = " + str(entry_dict[clicked_entry.get()]))
+            cur.execute("SELECT E.event_id, E.description FROM Cause as C INNER JOIN Event as E ON C.event_id = E.event_id WHERE C.cause_id = " + str(entry_dict[clicked_entry.get()]))
             event1 = cur.fetchone()
-            clicked_event_editor1.set(event1[0])
+            clicked_event_editor1.set(event1[1])
 
             
-        event_id_drop_editor1 = OptionMenu(top, clicked_event_editor1, *event_id_list_editor1)
+        event_id_drop_editor1 = OptionMenu(top, clicked_event_editor1, *event_name_list_editor1)
         event_id_drop_editor1.grid(row=1, column=3, pady=10, padx=40)
 
 
@@ -687,6 +701,8 @@ def edit_entry():
     elif clicked.get() == "Cause_Barrier":
 
         top = Toplevel()
+        presentTop = top
+        print(presentTop)
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
         label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"))
@@ -710,26 +726,28 @@ def edit_entry():
 
         cause_id_data_editor = cur.fetchall()
         cause_id_list_editor = list()
+        cause_name_list_editor = list()
 
         for i in cause_id_data_editor:
             data = list(i)
             cause_id_list_editor.append(data[0])
+            cause_name_list_editor.append(data[1])
 
         clicked_cause_editor = StringVar()
+        cause_dict = dict(zip(cause_name_list_editor, cause_id_list_editor))
         if len(cause_id_list_editor) < 1:
             clicked_cause_editor.set("Create Cause First")
             cause_id_list_editor = ["Create Cause First"]
             
         else:
-            cur.execute("SELECT cause_id FROM Cause_Barrier WHERE cause_barrier_id = " + str(entry_dict[clicked_entry.get()]))
-            cause = cur.fetchone()
- 
-            clicked_cause_editor.set(cause[0])
+            cur.execute("SELECT C.cause_id, C.description FROM Cause_Barrier as Cb INNER JOIN Cause as C ON Cb.cause_id = C.cause_id WHERE Cb.cause_barrier_id = " + str(entry_dict[clicked_entry.get()]))
+            cause1 = cur.fetchone()
+            clicked_cause_editor.set(cause1[1])
 
         cause_id_editor = Label(top, text="Cause")
         cause_id_editor.grid(row=1, column=2, padx=10, pady=10)
             
-        cause_id_drop_editor = OptionMenu(top, clicked_cause_editor, *cause_id_list_editor)
+        cause_id_drop_editor = OptionMenu(top, clicked_cause_editor, *cause_dict.keys())
         cause_id_drop_editor.grid(row=1, column=3, pady=10, padx=40)
 
         cur.execute("""SELECT description, pfd FROM Cause_Barrier WHERE cause_barrier_id = """ + str(entry_dict[clicked_entry.get()]))
@@ -742,6 +760,8 @@ def edit_entry():
     elif clicked.get() == "Consequence": 
 
         top = Toplevel(bg="red")
+        presentTop = top
+        print(presentTop)
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
         label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"), background='red', foreground='white')
@@ -762,6 +782,7 @@ def edit_entry():
 
     
 
+
         #-------------Event Dropdown------------------
         cur.execute("""
                 SELECT event_id, description FROM Event;
@@ -769,23 +790,27 @@ def edit_entry():
 
         event_id_data_editor2 = cur.fetchall()
         event_id_list_editor2 = list()
+        event_name_list_editor2 = list()
 
         for i in event_id_data_editor2:
             data2 = list(i)
             event_id_list_editor2.append(data2[0])
+            event_name_list_editor2.append(data2[1])
 
         clicked_event_editor2 = StringVar()
+        event_dict2 = dict(zip(event_name_list_editor2, event_id_list_editor2))
         if len(event_id_list_editor2) < 1:
             clicked_event_editor2.set("Create Event First")
             event_id_list_editor2 = ["Create Event First"]
             
         else:
-            cur.execute("SELECT event_id FROM Consequence WHERE consequence_id = " + str(entry_dict[clicked_entry.get()]))
+            cur.execute("SELECT E.event_id, E.description FROM Consequence as Co INNER JOIN Event as E ON Co.event_id = E.event_id WHERE Co.consequence_id = " + str(entry_dict[clicked_entry.get()]))
             event2 = cur.fetchone()
-            clicked_event_editor2.set(event2[0])
+            clicked_event_editor2.set(event2[1])
+
 
             
-        event_id_drop_editor2 = OptionMenu(top, clicked_event_editor2, *event_id_list_editor2)
+        event_id_drop_editor2 = OptionMenu(top, clicked_event_editor2, *event_dict2.keys())
         event_id_drop_editor2.grid(row=1, column=3, pady=10, padx=40)
 
 
@@ -798,6 +823,8 @@ def edit_entry():
 
     elif clicked.get() == "Consequence_Barrier": 
         top = Toplevel()
+        presentTop = top
+        print(presentTop)
         top.title("Layer of Protection Analysis ")
         top.geometry("900x500")
         label = Label(top, text="Edit " + clicked.get(), font=("serif", 14, "bold"))
@@ -822,26 +849,28 @@ def edit_entry():
 
         consequence_id_data_editor = cur.fetchall()
         consequence_id_list_editor = list()
+        consequence_name_list_editor = list()
 
         for i in consequence_id_data_editor:
             data = list(i)
             consequence_id_list_editor.append(data[0])
+            consequence_name_list_editor.append(data[1])
 
         clicked_consequence_editor = StringVar()
+        consequence_dict = dict(zip(consequence_name_list_editor, consequence_id_list_editor))
         if len(consequence_id_list_editor) < 1:
             clicked_consequence_editor.set("Create Consequence First")
             consequence_id_list_editor = ["Create Consequence First"]
             
         else:
-            cur.execute("""SELECT consequence_id FROM Consequence_Barrier WHERE consequence_barrier_id = """ + str(entry_dict[clicked_entry.get()]))
-            consequence = cur.fetchone()
- 
-            clicked_consequence_editor.set(consequence[0])
+            cur.execute("SELECT Con.consequence_id, Con.description FROM Consequence_Barrier as ConB INNER JOIN Consequence as Con ON ConB.consequence_id = Con.consequence_id WHERE ConB.consequence_barrier_id = " + str(entry_dict[clicked_entry.get()]))
+            consequence1 = cur.fetchone()
+            clicked_consequence_editor.set(consequence1[1])
 
         consequence_id_editor = Label(top, text="Consequence")
         consequence_id_editor.grid(row=1, column=2, padx=10, pady=10)
             
-        consequence_id_drop_editor = OptionMenu(top, clicked_consequence_editor, *consequence_id_list_editor)
+        consequence_id_drop_editor = OptionMenu(top, clicked_consequence_editor, *consequence_dict.keys())
         consequence_id_drop_editor.grid(row=1, column=3, pady=10, padx=40)
 
         cur.execute("""SELECT description, pfd FROM Consequence_Barrier WHERE consequence_barrier_id = """ + str(entry_dict[clicked_entry.get()]))
@@ -924,7 +953,8 @@ def load_initial_entry():
         
     else:
         clicked_entry.set(entry_name_list[0])
-    entry_select_drop = OptionMenu(editlabelframe, clicked_entry, *entry_dict.keys())
+    print(entry_dict)
+    entry_select_drop = OptionMenu(editlabelframe, clicked_entry, *entry_name_list)
     entry_select_drop.grid(row=2, column=2)
 # Query, Delete and Edit
 
